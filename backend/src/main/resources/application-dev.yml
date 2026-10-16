@@ -1,0 +1,4 @@
+# Local development: read secrets from infra/.env (gitignored) when run from backend/.
+spring:
+  config:
+    import: optional:file:../infra/.env[.properties]
