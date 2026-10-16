@@ -18,18 +18,17 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
-	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-	/**
-	 * Handles any exception not mapped elsewhere.
-	 *
-	 * @param ex the unexpected exception
-	 * @return a generic 500 problem without internal details
-	 */
-	@ExceptionHandler(Exception.class)
-	ProblemDetail handleUnexpected(Exception ex) {
-		log.error("Unhandled exception", ex);
-		return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
-	}
-
+    /**
+     * Handles any exception not mapped elsewhere.
+     *
+     * @param ex the unexpected exception
+     * @return a generic 500 problem without internal details
+     */
+    @ExceptionHandler(Exception.class)
+    ProblemDetail handleUnexpected(Exception ex) {
+        log.error("Unhandled exception", ex);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
+    }
 }

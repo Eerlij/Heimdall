@@ -19,37 +19,37 @@ import org.springframework.web.bind.annotation.RestController;
 @Import(GlobalExceptionHandlerTests.BoomController.class)
 class GlobalExceptionHandlerTests {
 
-	@Autowired
-	MockMvc mvc;
+    @Autowired
+    MockMvc mvc;
 
-	@Test
-	void unknownApiPathReturnsProblem404() throws Exception {
-		mvc.perform(get("/api/does-not-exist"))
-				.andExpect(status().isNotFound())
-				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-				.andExpect(jsonPath("$.status").value(404));
-	}
+    @Test
+    void unknownApiPathReturnsProblem404() throws Exception {
+        mvc.perform(get("/api/does-not-exist"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(404));
+    }
 
-	@Test
-	void unexpectedErrorReturnsGenericProblem500() throws Exception {
-		String body = mvc.perform(get("/api/test/boom"))
-				.andExpect(status().isInternalServerError())
-				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-				.andExpect(jsonPath("$.title").value("Internal Server Error"))
-				.andExpect(jsonPath("$.detail").value("An unexpected error occurred."))
-				.andReturn().getResponse().getContentAsString();
+    @Test
+    void unexpectedErrorReturnsGenericProblem500() throws Exception {
+        String body = mvc.perform(get("/api/test/boom"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Internal Server Error"))
+                .andExpect(jsonPath("$.detail").value("An unexpected error occurred."))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-		assertThat(body).doesNotContain("secret internal detail").doesNotContain("Exception");
-	}
+        assertThat(body).doesNotContain("secret internal detail").doesNotContain("Exception");
+    }
 
-	@RestController
-	static class BoomController {
+    @RestController
+    static class BoomController {
 
-		@GetMapping("/api/test/boom")
-		String boom() {
-			throw new IllegalStateException("secret internal detail");
-		}
-
-	}
-
+        @GetMapping("/api/test/boom")
+        String boom() {
+            throw new IllegalStateException("secret internal detail");
+        }
+    }
 }
