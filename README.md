@@ -29,7 +29,7 @@ This starts PostgreSQL 18 with two databases: `heimdall` (the app) and `keycloak
 
 | Mode | Command | What runs |
 |---|---|---|
-| `dev` | `docker compose -f infra/docker-compose.yml up -d --wait`, then in `backend/`: `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` | Postgres in Docker, backend on the host with hot restart; dev secrets are read from `infra/.env` |
+| `dev` | `docker compose -f infra/docker-compose.yml up -d --wait`, then in `backend/`: `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` | Postgres in Docker, backend on the host; dev secrets are read from `infra/.env` |
 | `full` | `docker compose -f infra/docker-compose.yml --profile full up -d --build` | Postgres and the backend image, as in production |
 
 Backend health: <http://localhost:8081/actuator/health> (the management port is bound to localhost only).
