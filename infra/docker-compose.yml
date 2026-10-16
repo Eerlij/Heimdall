@@ -12,7 +12,8 @@ services:
       - pgdata:/var/lib/postgresql
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      # TCP check: the entrypoint's temporary init server only listens on the socket, so this waits for init to finish.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U heimdall -d heimdall"]
       interval: 5s
       retries: 10
 
@@ -21,8 +22,9 @@ services:
     build:
       context: ../backend
       secrets: [extra-ca-cert]
-    env_file: .env
     environment:
+      # Only the secret this service needs (not the superuser or Keycloak passwords).
+      HEIMDALL_DB_PASSWORD: ${HEIMDALL_DB_PASSWORD:?set HEIMDALL_DB_PASSWORD in infra/.env}
       DB_URL: jdbc:postgresql://postgres:5432/heimdall
     depends_on:
       postgres:
