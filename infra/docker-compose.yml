@@ -16,5 +16,25 @@ services:
       interval: 5s
       retries: 10
 
+  backend:
+    profiles: [full]
+    build:
+      context: ../backend
+      secrets: [extra-ca-cert]
+    env_file: .env
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/heimdall
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      # App port 8080 stays on the internal network (nginx fronts it in later plans); management is local-only.
+      - "127.0.0.1:8081:8081"
+
+secrets:
+  # Extra CA trusted only while building images (TLS-intercepting antivirus/proxy). Empty by default.
+  extra-ca-cert:
+    file: ${EXTRA_CA_CERT_FILE:-./certs/none.pem}
+
 volumes:
   pgdata:

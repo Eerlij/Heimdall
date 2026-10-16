@@ -24,3 +24,25 @@ This starts PostgreSQL 18 with two databases: `heimdall` (the app) and `keycloak
 
 > The database init script runs only on an empty volume. If you change passwords in `infra/.env` after the first
 > start, re-initialize with `docker compose -f infra/docker-compose.yml down -v` (this **deletes** local data).
+
+## Run modes
+
+| Mode | Command | What runs |
+|---|---|---|
+| `dev` | `docker compose -f infra/docker-compose.yml up -d --wait`, then in `backend/`: `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` | Postgres in Docker, backend on the host with hot restart; dev secrets are read from `infra/.env` |
+| `full` | `docker compose -f infra/docker-compose.yml --profile full up -d --build` | Postgres and the backend image, as in production |
+
+Backend health: <http://localhost:8081/actuator/health> (the management port is bound to localhost only).
+
+Backend build: `./mvnw verify` in `backend/` runs tests (Testcontainers, so Docker must be running), the Spotless format
+check and the JaCoCo coverage report. Fix formatting with `./mvnw spotless:apply`.
+
+### Behind a TLS-intercepting antivirus or proxy
+
+If Maven or the image build fails with `PKIX path building failed`, your antivirus (for example AVG/Avast HTTPS
+scanning) or a corporate proxy is re-signing TLS traffic.
+
+- Host builds: trust the Windows certificate store for Maven, e.g.
+  `MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=Windows-ROOT ./mvnw verify`.
+- Image builds: copy the proxy's root CA to `infra/certs/local-ca.pem` (gitignored) and set
+  `EXTRA_CA_CERT_FILE=./certs/local-ca.pem` in `infra/.env`. It is trusted only while building, never at runtime.

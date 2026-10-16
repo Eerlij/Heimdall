@@ -16,3 +16,7 @@ infra/.env
 
 # Claude Code: team config is committed, personal overrides are not
 .claude/settings.local.json
+
+# Local CA certificates (machine-specific); keep the empty placeholder
+infra/certs/*
+!infra/certs/none.pem
