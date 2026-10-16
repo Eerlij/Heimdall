@@ -1,0 +1,20 @@
+# Heimdall local stack. See README "Run modes".
+name: heimdall
+
+services:
+  postgres:
+    image: postgres:18
+    env_file: .env
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # PG18 images keep data under /var/lib/postgresql/<major>/docker; mount the parent.
+      - pgdata:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

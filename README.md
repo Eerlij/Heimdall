@@ -13,4 +13,14 @@ from your own data, and reminders. It is a Spring Boot modular monolith with an 
 
 ## Getting started
 
-_Filled in as the foundation is built._
+Prerequisites: Docker (with Compose v2) and JDK 25. Maven is not needed; the backend ships the Maven wrapper.
+
+```bash
+cp infra/.env.example infra/.env   # dev-only values; edit if you like
+docker compose -f infra/docker-compose.yml up -d --wait
+```
+
+This starts PostgreSQL 18 with two databases: `heimdall` (the app) and `keycloak`, each owned by its own role.
+
+> The database init script runs only on an empty volume. If you change passwords in `infra/.env` after the first
+> start, re-initialize with `docker compose -f infra/docker-compose.yml down -v` (this **deletes** local data).
