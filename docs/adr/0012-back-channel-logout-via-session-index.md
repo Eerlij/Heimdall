@@ -11,8 +11,8 @@ a restart would no longer end the matching session.
 
 ## Decision
 
-Resolve sessions through Spring Session's principal index (`SessionStoreOidcSessionRegistry`) instead of a registry of
-our own. The principal name is the Keycloak `sub`, so a logout token finds its sessions directly in the session store.
+Resolve sessions through Spring Session's principal index (`SessionStoreOidcSessionRegistry`, our own registry that
+keeps no state and delegates to that index). The principal name is the Keycloak `sub`, so a logout token finds its sessions directly in the session store.
 No extra table is needed.
 
 ## Consequences
@@ -23,8 +23,7 @@ No extra table is needed.
 - The principal name must stay `sub`.
 - Sessions of the token's subject that cannot be deserialized are deleted (fail closed).
 - Spring's back-channel handler re-posts to `{baseScheme}://localhost{basePort}/logout/connect/back-channel/{registrationId}`
-  with the raw session id as the `SESSION` cookie, so base64 cookie encoding is disabled and session cookies are no
-  longer base64-encoded.
+  with the raw session id as the `SESSION` cookie, so base64 cookie encoding is disabled.
 - Upstream limits remain: the handler's `RestTemplate` has no timeouts, and the JWK set is re-fetched on every re-post.
 - A Keycloak sign-out while the backend is down is lost (Keycloak sends it once); that session lives until its idle
   timeout.

@@ -62,9 +62,9 @@ class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/error")
                         .permitAll()
-                        // Expired-session logout still needs a masked token; the cookie token store and
-                        // NullRequestCache
-                        // create no session row, and the response is only readable same-origin.
+                        // Expired-session logout still needs a masked token. The cookie token store
+                        // and NullRequestCache create no session row, and the
+                        // response is only readable same-origin.
                         .requestMatchers(HttpMethod.GET, "/api/csrf")
                         .permitAll()
                         .anyRequest()

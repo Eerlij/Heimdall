@@ -32,7 +32,8 @@ clients:
     redirectUris:
       - "$(env:PUBLIC_ORIGIN)/login/oauth2/code/keycloak"
     webOrigins: []
-    defaultClientScopes: [profile, email]
+    # Roles and web-origins are deliberately left out: there is no RBAC and no CORS yet.
+    defaultClientScopes: [basic, acr, profile, email]
     attributes:
       pkce.code.challenge.method: S256
       post.logout.redirect.uris: "$(env:PUBLIC_ORIGIN)/"

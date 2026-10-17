@@ -6,6 +6,9 @@ infra/.env
 **/dist/
 **/node_modules/
 
+# IDE/jdtls output at the repo root
+/build/
+
 # IDEs / OS
 .idea/
 *.iml

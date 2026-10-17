@@ -28,7 +28,12 @@ server {
     proxy_pass $keycloak;
   }
 
-  # Also covers /login/oauth2/code/* and /logout/connect/back-channel/*.
+  # Keycloak calls the back-channel endpoint directly, never through the public edge; plan 7 revisits this if routing changes.
+  location ^~ /logout/connect/ {
+    return 404;
+  }
+
+  # Also covers /login/oauth2/code/*.
   location ~ ^/(api|oauth2|login|logout)(/|$) {
     proxy_pass $backend;
   }
