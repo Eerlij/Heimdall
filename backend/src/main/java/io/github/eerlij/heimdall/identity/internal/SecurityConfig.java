@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
@@ -35,6 +36,7 @@ class SecurityConfig {
      * @param problems the 401/403 problem writer
      * @param keycloak Keycloak location and client id
      * @param heimdall the public origin
+     * @param appUsers the application user store
      * @return the chain
      * @throws Exception if the chain cannot be built
      */
@@ -45,8 +47,10 @@ class SecurityConfig {
             OAuth2AuthorizedClientRepository authorizedClients,
             ProblemDetailsSecurityHandler problems,
             KeycloakProperties keycloak,
-            HeimdallProperties heimdall)
+            HeimdallProperties heimdall,
+            AppUserRepository appUsers)
             throws Exception {
+        var oidcUserService = new AppUserOidcUserService(new OidcUserService(), appUsers);
         http.authorizeHttpRequests(requests -> requests.requestMatchers(
                                 EndpointRequest.to(HealthEndpoint.class, InfoEndpoint.class))
                         .permitAll()
@@ -71,6 +75,7 @@ class SecurityConfig {
                         .failureUrl("/?login_error")
                         .authorizationEndpoint(endpoint -> endpoint.authorizationRequestResolver(
                                 new UiLocalesAuthorizationRequestResolver(registrations)))
+                        .userInfoEndpoint(userInfo -> userInfo.oidcUserService(oidcUserService))
                         .authorizedClientRepository(authorizedClients))
                 .csrf(CsrfConfigurer::spa)
                 .logout(logout -> logout.logoutSuccessHandler(logoutSuccessHandler(registrations, keycloak, heimdall)));
