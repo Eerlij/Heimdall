@@ -20,7 +20,8 @@ cp infra/.env.example infra/.env   # dev-only values; edit if you like
 docker compose -f infra/docker-compose.yml up -d --wait
 ```
 
-This starts PostgreSQL 18 with two databases: `heimdall` (the app) and `keycloak`, each owned by its own role.
+This starts PostgreSQL 18 with two databases: `heimdall` (the app) and `keycloak`, each owned by its own role,
+plus Keycloak (realm applied by keycloak-config), Mailpit and an nginx origin on port 80.
 
 > The database init script runs only on an empty volume. If you change passwords in `infra/.env` after the first
 > start, re-initialize with `docker compose -f infra/docker-compose.yml down -v` (this **deletes** local data).
@@ -32,7 +33,26 @@ This starts PostgreSQL 18 with two databases: `heimdall` (the app) and `keycloak
 | `dev` | `docker compose -f infra/docker-compose.yml up -d --wait`, then in `backend/`: `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` | Postgres in Docker, backend on the host; dev secrets are read from `infra/.env` |
 | `full` | `docker compose -f infra/docker-compose.yml --profile full up -d --build` | Postgres and the backend image, as in production |
 
-Backend health: <http://localhost:8081/actuator/health> (the management port is bound to localhost only).
+### Dev mode
+
+```bash
+cp infra/.env.example infra/.env
+docker compose -f infra/docker-compose.yml up -d --wait
+cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Browse <http://localhost> (nginx forwards to the backend on the host).
+
+| What | Where |
+|---|---|
+| Mailpit (verification mails) | <http://localhost:8025> |
+| Keycloak admin | <http://localhost/auth/admin> (`admin`, password is `KEYCLOAK_ADMIN_PASSWORD` in `infra/.env`) |
+
+`infra/.env` gained `KEYCLOAK_ADMIN_PASSWORD`, `HEIMDALL_KEYCLOAK_CLIENT_SECRET`, `PUBLIC_ORIGIN`,
+`KC_REGISTRATION_ALLOWED`, `HEIMDALL_COOKIE_SECURE`, `BACKEND_UPSTREAM` and `BACKCHANNEL_LOGOUT_URL`; copy the new keys
+from `infra/.env.example`. No volume reset is needed: the `keycloak` database has existed since the first setup.
+
+Backend health: <http://127.0.0.1:8081/actuator/health> (the management port is bound to localhost only).
 
 Backend build: `./mvnw verify` in `backend/` runs tests (Testcontainers, so Docker must be running), the Spotless format
 check and the JaCoCo coverage report. Fix formatting with `./mvnw spotless:apply`.
