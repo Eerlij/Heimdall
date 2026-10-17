@@ -9,19 +9,25 @@ import org.springframework.boot.security.autoconfigure.actuate.web.servlet.Endpo
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.config.annotation.web.configurers.oauth2.client.OidcBackChannelLogoutHandler;
+import org.springframework.security.oauth2.client.oidc.session.OidcSessionRegistry;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.savedrequest.NullRequestCache;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * The backend-for-frontend security chain: Keycloak login into a server-side session, RFC 9457 401/403s for the API
- * (never a login redirect), SPA-style CSRF and logout that also ends the Keycloak session.
+ * (never a login redirect), SPA-style CSRF, logout that also ends the Keycloak session, and Keycloak's back-channel
+ * logout ({@code POST /logout/connect/back-channel/keycloak}) ending app sessions.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(HeimdallProperties.class)
@@ -78,8 +84,40 @@ class SecurityConfig {
                         .userInfoEndpoint(userInfo -> userInfo.oidcUserService(oidcUserService))
                         .authorizedClientRepository(authorizedClients))
                 .csrf(CsrfConfigurer::spa)
-                .logout(logout -> logout.logoutSuccessHandler(logoutSuccessHandler(registrations, keycloak, heimdall)));
+                .logout(logout -> logout.logoutSuccessHandler(logoutSuccessHandler(registrations, keycloak, heimdall)))
+                // Picks up the OidcBackChannelLogoutHandler bean; calling logoutUri(..) here would replace it.
+                .oidcLogout(oidc -> oidc.backChannel(Customizer.withDefaults()));
         return http.build();
+    }
+
+    /**
+     * Back-channel logout's session lookup, backed by the session store so it survives restarts.
+     *
+     * @param sessions the Spring Session repository
+     * @return the registry
+     */
+    @Bean
+    OidcSessionRegistry oidcSessionRegistry(FindByIndexNameSessionRepository<? extends Session> sessions) {
+        return new SessionStoreOidcSessionRegistry(sessions);
+    }
+
+    /**
+     * Ends each matched session by re-posting the logout token to this app with the session's {@code SESSION} cookie,
+     * which runs the normal logout handlers.
+     *
+     * <p>Upstream limits: its {@code RestTemplate} has no timeouts, and each logout re-fetches the JWK set once per
+     * session (the internal request validates the token again).
+     *
+     * @param registry the session lookup
+     * @return the handler
+     */
+    @Bean
+    OidcBackChannelLogoutHandler oidcBackChannelLogoutHandler(OidcSessionRegistry registry) {
+        OidcBackChannelLogoutHandler handler = new OidcBackChannelLogoutHandler(registry);
+        handler.setSessionCookieName("SESSION");
+        // Spring re-posts to itself; the host Keycloak used (e.g. host.docker.internal) may not resolve from inside.
+        handler.setLogoutUri("{baseScheme}://localhost{basePort}/logout/connect/back-channel/{registrationId}");
+        return handler;
     }
 
     private static OidcClientInitiatedLogoutSuccessHandler logoutSuccessHandler(
