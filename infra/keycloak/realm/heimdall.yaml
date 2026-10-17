@@ -1,0 +1,41 @@
+# Realm as code, applied by keycloak-config-cli on every `up`. Substitution is textual and runs before YAML
+# parsing, so every substituted value is double-quoted. No literal secrets here.
+realm: heimdall
+enabled: true
+registrationAllowed: "$(env:KC_REGISTRATION_ALLOWED:-false)"
+verifyEmail: true
+resetPasswordAllowed: true
+loginWithEmailAllowed: true
+duplicateEmailsAllowed: false
+bruteForceProtected: true
+sslRequired: external
+passwordPolicy: "length(12) and notUsername and notEmail"
+internationalizationEnabled: true
+supportedLocales: [en, pt]
+defaultLocale: en
+# Prod SMTP is a non-goal for now; becomes env-driven with hosting.
+smtpServer:
+  host: mailpit
+  port: "1025"
+  from: no-reply@heimdall.localhost
+  fromDisplayName: Heimdall
+clients:
+  - clientId: heimdall-bff
+    enabled: true
+    publicClient: false
+    secret: "$(env:HEIMDALL_KEYCLOAK_CLIENT_SECRET)"
+    standardFlowEnabled: true
+    directAccessGrantsEnabled: false
+    implicitFlowEnabled: false
+    serviceAccountsEnabled: false
+    frontchannelLogout: false
+    redirectUris:
+      - "$(env:PUBLIC_ORIGIN)/login/oauth2/code/keycloak"
+    webOrigins: []
+    defaultClientScopes: [profile, email]
+    attributes:
+      pkce.code.challenge.method: S256
+      post.logout.redirect.uris: "$(env:PUBLIC_ORIGIN)/"
+      backchannel.logout.url: "$(env:BACKCHANNEL_LOGOUT_URL)"
+      backchannel.logout.session.required: "true"
+      backchannel.logout.revoke.offline.tokens: "false"
