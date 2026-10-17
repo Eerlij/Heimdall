@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -19,6 +21,17 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    /**
+     * Lets Spring Security answer its own exceptions. Rethrowing the same instance lets {@code ExceptionTranslationFilter}
+     * turn it into a 401/403 instead of the catch-all 500 below (Framework 7 propagates it without a warning).
+     *
+     * @param ex the access-denied or authentication exception
+     */
+    @ExceptionHandler({AccessDeniedException.class, AuthenticationException.class})
+    void rethrowSecurity(RuntimeException ex) {
+        throw ex;
+    }
 
     /**
      * Handles any exception not mapped elsewhere.

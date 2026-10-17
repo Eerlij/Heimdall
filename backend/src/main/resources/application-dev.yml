@@ -2,3 +2,8 @@
 spring:
   config:
     import: optional:file:../infra/.env[.properties]
+
+# Host-run backend: keep the management port off the LAN.
+management:
+  server:
+    address: 127.0.0.1

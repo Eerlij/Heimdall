@@ -10,6 +10,10 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  session:
+    jdbc:
+      # Flyway owns the schema (V2).
+      initialize-schema: never
   threads:
     virtual:
       enabled: true
@@ -17,6 +21,16 @@ spring:
 server:
   port: 8080
   shutdown: graceful
+  # nginx is the only edge and overwrites every forwarded header.
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      timeout: ${HEIMDALL_SESSION_TIMEOUT:30m}
+      cookie:
+        http-only: true
+        same-site: lax
+        # false only for plain-http localhost.
+        secure: ${HEIMDALL_COOKIE_SECURE:true}
 
 management:
   server:
@@ -29,3 +43,15 @@ management:
     health:
       probes:
         enabled: true
+
+heimdall:
+  # The browser origin; used where no request is at hand.
+  public-origin: ${PUBLIC_ORIGIN:http://localhost}
+  keycloak:
+    public-url: ${KEYCLOAK_PUBLIC_URL:${heimdall.public-origin}/auth}
+    # Dev: Spring on the host reaches Keycloak through nginx; containers use the internal service URL.
+    internal-url: ${KEYCLOAK_INTERNAL_URL:${heimdall.keycloak.public-url}}
+    realm: heimdall
+    client-id: heimdall-bff
+    # No default on purpose (see HeimdallApplication.REQUIRED_PROPERTIES).
+    client-secret: ${HEIMDALL_KEYCLOAK_CLIENT_SECRET}

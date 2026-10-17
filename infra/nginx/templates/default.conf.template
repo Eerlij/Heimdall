@@ -1,0 +1,45 @@
+# Query strings carry `code`, `state` and `id_token_hint`, so they are never logged.
+log_format noquery '$remote_addr [$time_local] "$request_method $uri $server_protocol" $status $body_bytes_sent $request_time';
+
+server {
+  listen 80;
+  access_log /var/log/nginx/access.log noquery;
+
+  # Docker's DNS + variable upstreams: a recreated container's new IP is picked up.
+  resolver 127.0.0.11 valid=10s;
+  set $keycloak http://keycloak:8080;
+  set $backend http://${BACKEND_UPSTREAM};
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Forwarded-Host $host;
+  proxy_set_header X-Forwarded-Port $server_port;
+  # Edge proxy: never trust a client-sent chain.
+  proxy_set_header X-Forwarded-For $remote_addr;
+  # Spring honours these if passed through, so blank them.
+  proxy_set_header Forwarded "";
+  proxy_set_header X-Forwarded-Prefix "";
+  # Keycloak's auth cookies and Spring's 302 to end-session carry large headers.
+  proxy_buffer_size 128k;
+  proxy_buffers 4 256k;
+
+  # TODO(hosting plan): prod must not expose /auth/admin publicly.
+  location /auth/ {
+    proxy_pass $keycloak;
+  }
+
+  # Keycloak calls the back-channel endpoint directly, never through the public edge; plan 7 revisits this if routing changes.
+  location ^~ /logout/connect/ {
+    return 404;
+  }
+
+  # Also covers /login/oauth2/code/*.
+  location ~ ^/(api|oauth2|login|logout)(/|$) {
+    proxy_pass $backend;
+  }
+
+  location / {
+    default_type text/plain;
+    return 200 "Heimdall: the app shell arrives in plan 3";
+  }
+}

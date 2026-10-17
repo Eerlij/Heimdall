@@ -9,11 +9,15 @@ import org.springframework.core.env.MissingRequiredPropertiesException;
 class RequiredPropertiesTests {
 
     @Test
-    void startupFailsNamingTheMissingDatabasePassword() {
+    void startupFailsNamingEveryMissingSecret() {
         assumeTrue(System.getenv("HEIMDALL_DB_PASSWORD") == null, "HEIMDALL_DB_PASSWORD is set in this shell");
+        assumeTrue(
+                System.getenv("HEIMDALL_KEYCLOAK_CLIENT_SECRET") == null,
+                "HEIMDALL_KEYCLOAK_CLIENT_SECRET is set in this shell");
 
         assertThatThrownBy(() -> HeimdallApplication.create().run("--spring.main.web-application-type=none"))
                 .isInstanceOf(MissingRequiredPropertiesException.class)
-                .hasMessageContaining("HEIMDALL_DB_PASSWORD");
+                .hasMessageContaining("HEIMDALL_DB_PASSWORD")
+                .hasMessageContaining("HEIMDALL_KEYCLOAK_CLIENT_SECRET");
     }
 }
