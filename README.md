@@ -46,3 +46,7 @@ scanning) or a corporate proxy is re-signing TLS traffic.
   `MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=Windows-ROOT ./mvnw verify`.
 - Image builds: copy the proxy's root CA to `infra/certs/local-ca.pem` (gitignored) and set
   `EXTRA_CA_CERT_FILE=./certs/local-ca.pem` in `infra/.env`. It is trusted only while building, never at runtime.
+
+## License
+
+[MIT](LICENSE)

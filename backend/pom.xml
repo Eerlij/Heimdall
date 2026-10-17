@@ -6,26 +6,11 @@
     <artifactId>spring-boot-starter-parent</artifactId>
     <version>4.1.1</version>
     <relativePath/>
-    <!-- lookup parent from repository -->
   </parent>
   <groupId>io.github.eerlij</groupId>
   <artifactId>heimdall</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>heimdall</name>
-  <description/>
-  <url/>
-  <licenses>
-    <license/>
-  </licenses>
-  <developers>
-    <developer/>
-  </developers>
-  <scm>
-    <connection/>
-    <developerConnection/>
-    <tag/>
-    <url/>
-  </scm>
   <properties>
     <java.version>25</java.version>
     <spring-modulith.version>2.1.1</spring-modulith.version>
