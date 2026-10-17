@@ -1,0 +1,42 @@
+# Heimdall local stack. See README "Run modes".
+name: heimdall
+
+services:
+  postgres:
+    image: postgres:18
+    env_file: .env
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # PG18 images keep data under /var/lib/postgresql/<major>/docker; mount the parent.
+      - pgdata:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # TCP check: the entrypoint's temporary init server only listens on the socket, so this waits for init to finish.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U heimdall -d heimdall"]
+      interval: 5s
+      retries: 10
+
+  backend:
+    profiles: [full]
+    build:
+      context: ../backend
+      secrets: [extra-ca-cert]
+    environment:
+      # Only the secret this service needs (not the superuser or Keycloak passwords).
+      HEIMDALL_DB_PASSWORD: ${HEIMDALL_DB_PASSWORD:?set HEIMDALL_DB_PASSWORD in infra/.env}
+      DB_URL: jdbc:postgresql://postgres:5432/heimdall
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      # App port 8080 stays on the internal network (nginx fronts it in later plans); management is local-only.
+      - "127.0.0.1:8081:8081"
+
+secrets:
+  # Extra CA trusted only while building images (TLS-intercepting antivirus/proxy). Empty by default.
+  extra-ca-cert:
+    file: ${EXTRA_CA_CERT_FILE:-./certs/none.pem}
+
+volumes:
+  pgdata:

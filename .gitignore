@@ -1,0 +1,22 @@
+# Secrets
+infra/.env
+
+# Build output
+**/target/
+**/dist/
+**/node_modules/
+
+# IDEs / OS
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+*.log
+
+# Claude Code: team config is committed, personal overrides are not
+.claude/settings.local.json
+
+# Local CA certificates (machine-specific); keep the empty placeholder
+infra/certs/*
+!infra/certs/none.pem

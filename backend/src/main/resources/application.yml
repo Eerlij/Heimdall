@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: heimdall
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/heimdall}
+    username: ${DB_USERNAME:heimdall}
+    # No default on purpose: a missing secret must fail startup, not fall back silently.
+    password: ${HEIMDALL_DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8080
+  shutdown: graceful
+
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
