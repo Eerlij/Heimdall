@@ -8,6 +8,7 @@ import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
@@ -50,6 +51,11 @@ class SecurityConfig {
                                 EndpointRequest.to(HealthEndpoint.class, InfoEndpoint.class))
                         .permitAll()
                         .requestMatchers("/error")
+                        .permitAll()
+                        // Expired-session logout still needs a masked token; the cookie token store and
+                        // NullRequestCache
+                        // create no session row, and the response is only readable same-origin.
+                        .requestMatchers(HttpMethod.GET, "/api/csrf")
                         .permitAll()
                         .anyRequest()
                         .authenticated())

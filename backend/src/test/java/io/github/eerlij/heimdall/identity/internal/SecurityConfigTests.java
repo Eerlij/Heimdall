@@ -24,6 +24,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -33,6 +34,7 @@ import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,6 +56,9 @@ class SecurityConfigTests {
 
     @Autowired
     FindByIndexNameSessionRepository<?> sessions;
+
+    @Autowired
+    JdbcClient jdbc;
 
     @Test
     void apiGetWithoutSessionIs401Problem() throws Exception {
@@ -149,20 +154,26 @@ class SecurityConfigTests {
     }
 
     @Test
+    void anonymousCsrfFetchCreatesNoSession() throws Exception {
+        long before = sessionRows();
+
+        mvc.perform(get("/api/csrf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(cookie().doesNotExist("SESSION"));
+
+        assertThat(sessionRows()).isEqualTo(before);
+    }
+
+    @Test
     void formLogoutRedirectsToKeycloakEndSession() throws Exception {
         String sessionId = TestSessions.save(sessions, user());
-        MvcResult csrf = mvc.perform(get("/api/csrf").cookie(sessionCookie(sessionId)))
-                .andExpect(status().isOk())
-                .andReturn();
-        String maskedToken = JsonPath.read(csrf.getResponse().getContentAsString(), "$.token");
-        Cookie xsrfCookie = csrf.getResponse().getCookie("XSRF-TOKEN");
-        assertThat(xsrfCookie).isNotNull();
-        assertThat(xsrfCookie.getValue()).isNotEqualTo(maskedToken);
+        CsrfForm csrf = fetchCsrf(sessionCookie(sessionId));
 
         UriComponents location = redirectLocation(mvc.perform(post("/logout")
-                        .cookie(sessionCookie(sessionId), xsrfCookie)
+                        .cookie(sessionCookie(sessionId), csrf.cookie())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("_csrf", maskedToken))
+                        .param("_csrf", csrf.maskedToken()))
                 .andExpect(status().isFound()));
 
         assertThat(location.toUriString()).startsWith(KEYCLOAK_OIDC + "/logout?");
@@ -173,8 +184,14 @@ class SecurityConfigTests {
 
     @Test
     void logoutWithExpiredSessionStillEndsKeycloakSession() throws Exception {
-        UriComponents location =
-                redirectLocation(mvc.perform(post("/logout").with(xsrfToken())).andExpect(status().isFound()));
+        // The browser's flow: no SESSION, so the token comes from an anonymous /api/csrf.
+        CsrfForm csrf = fetchCsrf();
+
+        UriComponents location = redirectLocation(mvc.perform(post("/logout")
+                        .cookie(csrf.cookie())
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("_csrf", csrf.maskedToken()))
+                .andExpect(status().isFound()));
 
         assertThat(location.toUriString()).startsWith(KEYCLOAK_OIDC + "/logout?");
         assertThat(location.getQueryParams().keySet()).containsExactly("client_id", "post_logout_redirect_uri");
@@ -188,6 +205,26 @@ class SecurityConfigTests {
                 mvc.perform(get("/api/test/denied")
                         .with(oidcLogin().clientRegistration(registrations.findByRegistrationId("keycloak")))),
                 403);
+    }
+
+    /** A masked token for a hidden form field, plus the XSRF-TOKEN cookie holding the raw token it is checked against. */
+    private record CsrfForm(String maskedToken, Cookie cookie) {}
+
+    private CsrfForm fetchCsrf(Cookie... cookies) throws Exception {
+        MockHttpServletRequestBuilder request = get("/api/csrf");
+        if (cookies.length > 0) {
+            request.cookie(cookies);
+        }
+        MvcResult result = mvc.perform(request).andExpect(status().isOk()).andReturn();
+        String maskedToken = JsonPath.read(result.getResponse().getContentAsString(), "$.token");
+        Cookie cookie = result.getResponse().getCookie("XSRF-TOKEN");
+        assertThat(cookie).isNotNull();
+        assertThat(cookie.getValue()).isNotEqualTo(maskedToken);
+        return new CsrfForm(maskedToken, cookie);
+    }
+
+    private long sessionRows() {
+        return jdbc.sql("select count(*) from spring_session").query(Long.class).single();
     }
 
     private static void expectProblem(ResultActions result, int status) throws Exception {
