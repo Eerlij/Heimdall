@@ -109,9 +109,13 @@ services:
       context: ../backend
       secrets: [extra-ca-cert]
     environment:
-      # Only the secret this service needs (not the superuser or Keycloak passwords).
+      # Only the secrets this service needs (not the superuser or Keycloak admin/DB passwords).
       HEIMDALL_DB_PASSWORD: ${HEIMDALL_DB_PASSWORD:?set HEIMDALL_DB_PASSWORD in infra/.env}
       DB_URL: jdbc:postgresql://postgres:5432/heimdall
+      HEIMDALL_KEYCLOAK_CLIENT_SECRET: ${HEIMDALL_KEYCLOAK_CLIENT_SECRET:?set HEIMDALL_KEYCLOAK_CLIENT_SECRET in infra/.env}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN in infra/.env}
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080/auth
+      HEIMDALL_COOKIE_SECURE: "false"
     depends_on:
       postgres:
         condition: service_healthy

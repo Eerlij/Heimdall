@@ -13,7 +13,7 @@ public class HeimdallApplication {
      * Secrets without defaults. Spring leaves unresolved placeholders as literal strings in bound properties, so
      * they are checked up front to fail with a message that names the missing variable.
      */
-    static final String[] REQUIRED_PROPERTIES = {"HEIMDALL_DB_PASSWORD"};
+    static final String[] REQUIRED_PROPERTIES = {"HEIMDALL_DB_PASSWORD", "HEIMDALL_KEYCLOAK_CLIENT_SECRET"};
 
     public static void main(String[] args) {
         create().run(args);
